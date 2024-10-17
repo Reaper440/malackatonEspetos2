@@ -1,4 +1,4 @@
-package sequia.entidades;
+package sequia.entities;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
