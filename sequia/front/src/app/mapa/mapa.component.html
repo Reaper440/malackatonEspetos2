@@ -1,3 +1,146 @@
-<p>mapa works!</p>
+<body>
+    <div id="map"></div>
+    <div id="lista-embalses">
+        <h3>Embalses Cercanos</h3>
+        <div id="radio-input">
+            <label for="radio">Introduce el radio (km):</label>
+            <input type="number" id="radio" value="100" min="1" />
+        </div>
+        <div id="capacidad-input">
+            <label for="capacidad-minima">Capacidad Mínima (m³):</label>
+            <input type="number" id="capacidad-minima" min="0" />
+            <label for="capacidad-maxima">Capacidad Máxima (m³):</label>
+            <input type="number" id="capacidad-maxima" min="0" />
+        </div>
+        <ul id="embalses-list">
+            <!-- Aquí irán los embalses -->
+        </ul>
+    </div>
 
-<!-- <button (click)="navigateToOtherComponent()">Ir a otro componente</button> -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Script para el Mapa y la lógica -->
+    <script>
+        // Lista de embalses con coordenadas y capacidades (ejemplo)
+        const embalses = [
+            { nombre: "Embalse A", coords: [36.679113, -4.494509], capacidad: 5000 }, // Madrid
+            { nombre: "Embalse B", coords: [36.480234, -4.949423], capacidad: 12000 }, // Lisboa
+            { nombre: "Embalse C", coords: [36.605256, -4.500434], capacidad: 25000 }, // Roma
+            { nombre: "Embalse D", coords: [37.774929, -122.419418], capacidad: 7500 }, // San Francisco
+            { nombre: "Embalse E", coords: [36.778259, -119.417931], capacidad: 3000 }  // California
+        ];
+
+        // Inicializar el mapa
+        const map = L.map('map').setView([0, 0], 2); // Coordenadas iniciales y zoom
+
+        // Capa de mapa
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Función para calcular la distancia entre dos coordenadas
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Distancia en km
+        }
+
+        // Función para obtener la ubicación del usuario
+        function obtenerUbicacion() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(posicion => {
+                    const lat = posicion.coords.latitude;
+                    const lng = posicion.coords.longitude;
+                    map.setView([lat, lng], 10); // Centra el mapa en la ubicación del usuario
+
+                    // Marcador en la ubicación del usuario
+                    L.marker([lat, lng]).addTo(map)
+                        .bindPopup('Estás aquí')
+                        .openPopup();
+
+                    // Filtrar embalses dentro del radio especificado
+                    mostrarEmbalsesCercanos(lat, lng);
+                }, () => {
+                    alert("No se pudo obtener la ubicación.");
+                });
+            } else {
+                alert("Geolocalización no soportada por este navegador.");
+            }
+        }
+
+        // Función para mostrar embalses cercanos
+        function mostrarEmbalsesCercanos(lat, lng) {
+            const listaEmbalses = document.getElementById('embalses-list');
+            const radio = parseFloat(document.getElementById('radio').value) || 100; // Obtener radio del input
+            const capacidadMinima = parseFloat(document.getElementById('capacidad-minima').value) || 0; // Obtener capacidad mínima
+            const capacidadMaxima = parseFloat(document.getElementById('capacidad-maxima').value) || Infinity; // Obtener capacidad máxima
+            listaEmbalses.innerHTML = ''; // Limpiar lista
+
+            embalses.forEach(embalse => {
+                const distancia = calcularDistancia(lat, lng, embalse.coords[0], embalse.coords[1]);
+                // Comprobar si el embalse está dentro del radio y dentro de los límites de capacidad
+                if (distancia <= radio && embalse.capacidad >= capacidadMinima && embalse.capacidad <= capacidadMaxima) {
+                    // Crear un elemento de lista
+                    const li = document.createElement('li');
+                    li.textContent = ${embalse.nombre} - ${distancia.toFixed(2)} km - Capacidad: ${embalse.capacidad} m³;
+                    li.onclick = () => mostrarPopup(embalse); // Añadir evento de clic
+                    listaEmbalses.appendChild(li);
+
+                    // Marcador en el mapa
+                    const marker = L.marker(embalse.coords).addTo(map)
+                        .bindPopup(embalse.nombre);
+                    
+                    // Añadir evento de clic en el marcador del mapa
+                    marker.on('click', () => mostrarPopup(embalse));
+                }
+            });
+        }
+
+        // Pop-up para mostrar información del embalse
+        function mostrarPopup(embalse) {
+            const overlay = document.createElement('div');
+            overlay.classList.add('overlay');
+
+            const popup = document.createElement('div');
+            popup.classList.add('popup');
+            popup.innerHTML = `
+                <h3>${embalse.nombre}</h3>
+                <p>Capacidad: ${embalse.capacidad} m³</p>
+                <button class="close">Cerrar</button>
+            `;
+
+            // Cerrar el pop-up
+            popup.querySelector('.close').onclick = () => {
+                overlay.style.display = 'none';
+                document.body.removeChild(overlay);
+            };
+
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+            overlay.style.display = 'flex'; // Mostrar el pop-up
+        }
+
+        // Evento para actualizar la lista de embalses cuando se cambian los valores
+        document.getElementById('radio').addEventListener('change', () => {
+            obtenerUbicacion(); // Vuelve a obtener la ubicación y filtra
+        });
+
+        document.getElementById('capacidad-minima').addEventListener('input', () => {
+            obtenerUbicacion(); // Vuelve a obtener la ubicación y filtra
+        });
+
+        document.getElementById('capacidad-maxima').addEventListener('input', () => {
+            obtenerUbicacion(); // Vuelve a obtener la ubicación y filtra
+        });
+
+        // Llamar a la función para obtener la ubicación
+        obtenerUbicacion();
+    </script>
+</body>

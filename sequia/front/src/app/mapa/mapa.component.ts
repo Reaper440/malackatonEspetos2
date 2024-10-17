@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrl: './mapa.component.css'
 })
 export class MapaComponent {
-
+    
 }
