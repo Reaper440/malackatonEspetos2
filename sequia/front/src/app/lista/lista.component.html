@@ -1,1 +1,29 @@
-<p>lista works!</p>
+<body>
+    <div class="contenedor">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="linea">
+                    <h1 class="nombre">Embalses</h1>
+                </div>
+
+                <div class="busqueda d-flex align-items-center">
+                    <div class="busqueda d-flex align-items-center">
+                        <input type="text" [(ngModel)]="busq" (keydown.enter)="filtrarEmbalses()" size="85">
+                        <button type="button" class="btn btn-light bi bi-search" (click)="filtrarEmbalses()"></button>
+                        <button type="button" class="bi bi-x-lg" (click)="borrarBusqueda()"> </button>
+                    </div>
+                </div>
+
+                <h2 *ngIf="emblases.length==0"> No hay clientes registrados </h2>
+                <h2 *ngIf="emblasesFiltrados.length==0 && emblases.length!=0"> Ning&uacute;n cliente cumple el filtro de b&uacute;squeda </h2>
+            
+                <div class="componentes">
+                    <div class="list-group">
+                        <button *ngFor="let embalse of emblasesFiltrados"
+                        class="list-group-item list-group-item-action">{{embalse.embalseNombre}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
